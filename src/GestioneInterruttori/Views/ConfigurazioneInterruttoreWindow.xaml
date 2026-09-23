@@ -1,0 +1,261 @@
+<Window x:Class="Views.ConfigurazioneInterruttoreWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GestioneInterruttori.Views"
+        mc:Ignorable="d"
+        Title="Configurazioni interruttore"
+        Height="720" Width="1100"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        FontFamily="Segoe UI"
+        Background="#EEF0F4">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="ColoreAccento" Color="#D8303F"/>
+        <SolidColorBrush x:Key="ColoreAccentoScuro" Color="#B32330"/>
+        <SolidColorBrush x:Key="ColoreAccentoTenue" Color="#FBE7E9"/>
+        <SolidColorBrush x:Key="ColoreSuccesso" Color="#1E9E5A"/>
+        <SolidColorBrush x:Key="ColoreSuccessoSfondo" Color="#E4F7EC"/>
+        <SolidColorBrush x:Key="ColoreTestoPrimario" Color="#1F2430"/>
+        <SolidColorBrush x:Key="ColoreTestoSecondario" Color="#6B7280"/>
+        <SolidColorBrush x:Key="ColoreBordo" Color="#E2E4EA"/>
+
+        <BooleanToVisibilityConverter x:Key="ConvertiBoolInVisibilita"/>
+        <local:LarghezzaColonnaConverter x:Key="ConvertiLarghezzaColonna"/>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="6,5"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <!-- Pulsante primario: pillola compatta con icona, non un blocco largo e piatto -->
+        <Style x:Key="PulsantePrimario" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource ColoreAccento}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="22,13"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Sfondo" Background="{TemplateBinding Background}" CornerRadius="24" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect Color="#D8303F" Opacity="0.35" BlurRadius="14" ShadowDepth="3" Direction="270"/>
+                            </Border.Effect>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="&#10003;" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sfondo" Property="Background" Value="{StaticResource ColoreAccentoScuro}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Card di un gruppo "Tipo": al massimo 3 per riga (larghezza calcolata dal converter),
+             oltre vanno a capo; ogni riga si adatta in altezza al proprio contenuto -->
+        <Style x:Key="CardGruppo" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Margin" Value="0,0,16,16"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#1F2430" Opacity="0.06" BlurRadius="14" ShadowDepth="2" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Intestazione del Tipo: barretta di accento colorata + testo maiuscolo -->
+        <Style x:Key="TestoTipo" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoPrimario}"/>
+            <Setter Property="Typography.Capitals" Value="AllSmallCaps"/>
+        </Style>
+
+        <!-- Chip di selezione (sostituisce la checkbox): bottone a pillola, colorato quando attivo -->
+        <Style x:Key="ChipOpzione" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Sfondo" CornerRadius="16" BorderThickness="1.4" Background="White" BorderBrush="{StaticResource ColoreBordo}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Sfondo" Property="Background" Value="{StaticResource ColoreAccento}"/>
+                                <Setter TargetName="Sfondo" Property="BorderBrush" Value="{StaticResource ColoreAccento}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="False">
+                                <Setter Property="Foreground" Value="{StaticResource ColoreTestoPrimario}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sfondo" Property="BorderBrush" Value="{StaticResource ColoreAccento}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Riquadro dei delta, mostrato solo per le opzioni abilitate -->
+        <Style x:Key="RiquadroDelta" TargetType="Border">
+            <Setter Property="Background" Value="#F7F8FA"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="EtichettaDelta" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoSecondario}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Intestazione -->
+        <Border Grid.Row="0" Margin="0,0,0,18" Padding="0,0,0,16" BorderBrush="{StaticResource ColoreBordo}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="5" CornerRadius="3" Background="{StaticResource ColoreAccento}" Margin="0,2,14,2"/>
+                <StackPanel>
+                    <TextBlock Text="Configurazioni" FontSize="26" FontWeight="Bold" Foreground="{StaticResource ColoreTestoPrimario}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="8,2">
+                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="{Binding NomeInterruttore}"/>
+                        </Border>
+                        <TextBlock Text="Seleziona le configurazioni applicabili a questo interruttore" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Banner di conferma salvataggio, appare e sparisce da solo -->
+        <Border Grid.Row="1"
+                Background="{StaticResource ColoreSuccessoSfondo}"
+                BorderBrush="{StaticResource ColoreSuccesso}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,9"
+                Margin="0,0,0,12"
+                Visibility="{Binding MostraConferma, Converter={StaticResource ConvertiBoolInVisibilita}}">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource ColoreSuccesso}" Margin="0,0,10,0">
+                    <TextBlock Text="&#10003;" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Modifiche salvate correttamente" Foreground="{StaticResource ColoreSuccesso}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Gruppi di configurazione: al massimo 3 card per riga, poi vanno a capo -->
+        <ScrollViewer x:Name="ContenitoreGruppi" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding GruppiConfigurazione}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardGruppo}"
+                                Width="{Binding ActualWidth, ElementName=ContenitoreGruppi, Converter={StaticResource ConvertiLarghezzaColonna}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <Border Width="4" Height="16" CornerRadius="2" Background="{StaticResource ColoreAccento}" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding Tipo}" Style="{StaticResource TestoTipo}"/>
+                                </StackPanel>
+
+                                <!-- Selezione: chip cliccabili, una o più per Tipo -->
+                                <ItemsControl ItemsSource="{Binding Opzioni}" Margin="0,0,0,4">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ToggleButton Style="{StaticResource ChipOpzione}"
+                                                          Content="{Binding Nome}"
+                                                          IsChecked="{Binding Abilitata, Mode=TwoWay}"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- Delta delle sole opzioni abilitate -->
+                                <ItemsControl ItemsSource="{Binding Opzioni}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource RiquadroDelta}"
+                                                    Visibility="{Binding Abilitata, Converter={StaticResource ConvertiBoolInVisibilita}}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Nome}" FontWeight="SemiBold" FontSize="12.5" Foreground="{StaticResource ColoreTestoPrimario}" Margin="0,0,0,8"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="10"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="10"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Text="Delta H" Style="{StaticResource EtichettaDelta}"/>
+                                                            <TextBox Text="{Binding DeltaH, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="2">
+                                                            <TextBlock Text="Delta L" Style="{StaticResource EtichettaDelta}"/>
+                                                            <TextBox Text="{Binding DeltaL, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        </StackPanel>
+                                                        <StackPanel Grid.Column="4">
+                                                            <TextBlock Text="Delta P" Style="{StaticResource EtichettaDelta}"/>
+                                                            <TextBox Text="{Binding DeltaP, UpdateSourceTrigger=PropertyChanged}"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Salva modifiche" Style="{StaticResource PulsantePrimario}" Command="{Binding SalvaCommand}"/>
+        </StackPanel>
+    </Grid>
+</Window>

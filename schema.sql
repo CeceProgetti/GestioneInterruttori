@@ -28,18 +28,22 @@ CREATE TABLE Interruttore (
 
 -- Taglie disponibili per l'interruttore
 CREATE TABLE TagliaInterruttore (
-    Id             INTEGER PRIMARY KEY,
-    IdInterruttore INTEGER NOT NULL REFERENCES Interruttore(Id),
-    Taglia         TEXT NOT NULL,
+    Id               INTEGER PRIMARY KEY,
+    IdInterruttore   INTEGER NOT NULL REFERENCES Interruttore(Id),
+    Taglia           TEXT NOT NULL,
+    PotenzaDissipata REAL,
     UNIQUE(IdInterruttore, Taglia)
 );
 
--- Catalogo di tutte le configurazioni possibili
+-- Catalogo di tutte le configurazioni possibili, raggruppate per Tipo
+-- (es. Tipo 'Esecuzione' -> opzioni Fissa/Esterna/Rem, una delle quali di Default)
 CREATE TABLE Configurazione (
     Id             INTEGER PRIMARY KEY,
-    Configurazione TEXT NOT NULL,   -- es. 'FISSA', 'ESTRAIBILE', 'LEVA'
+    Tipo           TEXT NOT NULL,   -- es. 'Esecuzione', 'Man_Rot', 'Diff'
+    Ordine         INTEGER NOT NULL, -- posizione del Tipo nella concatenazione del nome blocco
+    Configurazione TEXT NOT NULL,   -- es. 'Fissa', 'Esterna', 'Rem'
     DesinenzaDwg   TEXT NOT NULL,
-    Ordine         INTEGER NOT NULL
+    "Default"      INTEGER NOT NULL DEFAULT 0  -- 1 = opzione di default per quel Tipo
 );
 
 -- Configurazioni applicabili a quel interruttore + delta
@@ -61,12 +65,13 @@ CREATE TABLE LineaProdotto (
 -- Dimensioni cella per linea + interruttore + taglia
 CREATE TABLE ConfigurazioneCella (
     IdLineaProdotto         INTEGER NOT NULL REFERENCES LineaProdotto(Id),
-    IdInterruttore          INTEGER NOT NULL REFERENCES Interruttore(Id),
+    IdInterruttore          INTEGER NOT NULL,
     Taglia                  TEXT NOT NULL,
     AltezzaCella             REAL,
     LarghezzaCella           REAL,
     AltezzaCellaVerticale    REAL,
     LarghezzaCellaVerticale  REAL,
     ProfonditaCella          REAL,   -- ex PROFONDITA
-    PRIMARY KEY (IdLineaProdotto, IdInterruttore, Taglia)
+    PRIMARY KEY (IdLineaProdotto, IdInterruttore, Taglia),
+    FOREIGN KEY (IdInterruttore, Taglia) REFERENCES TagliaInterruttore(IdInterruttore, Taglia)
 );

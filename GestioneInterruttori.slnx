@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/GestioneInterruttori.Demo/GestioneInterruttori.Demo.vbproj" />
     <Project Path="src/GestioneInterruttori/GestioneInterruttori.vbproj" />
   </Folder>
 </Solution>
