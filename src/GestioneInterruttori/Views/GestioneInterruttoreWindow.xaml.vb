@@ -1,3 +1,5 @@
+Imports System.ComponentModel
+Imports System.Linq
 Imports GestioneInterruttori.Data
 Imports GestioneInterruttori.ViewModels
 
@@ -22,8 +24,16 @@ Namespace Views
 
             AddHandler _viewModel.RichiestaAperturaConfigurazioneInterruttore, AddressOf ApriConfigurazioneInterruttore
             AddHandler _viewModel.RichiestaAperturaConfigurazioneCella, AddressOf ApriConfigurazioneCella
+            AddHandler Closing, AddressOf GestioneInterruttoreWindow_Closing
 
             DataContext = _viewModel
+        End Sub
+
+        ''' <summary>Se ci sono modifiche non salvate, chiede conferma prima di chiudere la finestra.</summary>
+        Private Sub GestioneInterruttoreWindow_Closing(sender As Object, e As CancelEventArgs)
+            If Not _viewModel.ConfermaAbbandonoModifiche() Then
+                e.Cancel = True
+            End If
         End Sub
 
         ''' <summary>
@@ -39,9 +49,14 @@ Namespace Views
             End If
         End Sub
 
+        ''' <summary>Stessa logica in memoria di ApriConfigurazioneInterruttore.</summary>
         Private Sub ApriConfigurazioneCella(sender As Object, e As EventArgs)
-            MessageBox.Show("La maschera Configurazione cella non è ancora stata realizzata.",
-                             "In sviluppo", MessageBoxButton.OK, MessageBoxImage.Information)
+            Dim taglie = _viewModel.TaglieAssegnate.Select(Function(t) t.Taglia)
+            Dim finestra As New ConfigurazioneCellaWindow(_percorsoDatabase, _viewModel.Nome, taglie, _viewModel.LineeProdottoAssegnate, _viewModel.CellePendenti)
+            finestra.Owner = Me
+            If finestra.ShowDialog() = True Then
+                _viewModel.AggiornaCellePendenti(finestra.CelleModificate)
+            End If
         End Sub
 
     End Class

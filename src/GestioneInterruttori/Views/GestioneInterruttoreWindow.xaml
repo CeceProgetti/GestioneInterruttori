@@ -27,6 +27,7 @@
         <SolidColorBrush x:Key="ColoreSfondoPannello" Color="#F7F8FA"/>
 
         <BooleanToVisibilityConverter x:Key="ConvertiBoolInVisibilita"/>
+        <local:NumeroNullableConverter x:Key="ConvertiNumeroNullable"/>
 
         <!-- ===== Contenitori ===== -->
 
@@ -276,8 +277,7 @@
                               ItemsSource="{Binding Interruttori}"
                               SelectedItem="{Binding InterruttoreSelezionato}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="2*"/>
-                            <DataGridTextColumn Header="Poli" Binding="{Binding NumeroPoli}" Width="*"/>
+                            <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="*"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>
@@ -393,7 +393,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="POTENZA DISSIPATA" Style="{StaticResource Etichetta}"/>
-                                    <TextBox Text="{Binding NuovaPotenzaDissipata, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
+                                    <TextBox Text="{Binding NuovaPotenzaDissipata, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}" Margin="0"/>
                                 </StackPanel>
                                 <Button Grid.Column="4" Content="+ Aggiungi" Style="{StaticResource PulsantePiccolo}"
                                         VerticalAlignment="Bottom" Command="{Binding AggiungiTagliaCommand}"/>

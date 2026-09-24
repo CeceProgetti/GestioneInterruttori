@@ -4,49 +4,60 @@ Imports GestioneInterruttori.Models
 Imports GestioneInterruttori.ViewModels
 
 Namespace Views
-    ''' <summary>Finestra isolata sulla sola sezione Configurazioni di un interruttore.</summary>
-    Public Class ConfigurazioneInterruttoreWindow
+    ''' <summary>Finestra isolata sulla sola sezione Configurazione cella.</summary>
+    Public Class ConfigurazioneCellaWindow
 
-        Private ReadOnly _viewModel As ConfigurazioneInterruttoreViewModel
+        Private ReadOnly _viewModel As ConfigurazioneCellaViewModel
         Private _chiusuraConfermata As Boolean
 
-        ''' <summary>Modalità DB: interruttore già salvato, legge/scrive direttamente su ConfigurazioneInterruttore.</summary>
+        ''' <summary>Modalità DB: interruttore già salvato, legge/scrive direttamente su ConfigurazioneCella.</summary>
         Public Sub New(percorsoDatabase As String, idInterruttore As Integer)
             InitializeComponent()
 
             Dim db As New InterruttoriDbContext(percorsoDatabase)
             Dim repository As New InterruttoreRepository(db)
-            _viewModel = New ConfigurazioneInterruttoreViewModel(repository, idInterruttore)
-            AddHandler Closing, AddressOf ConfigurazioneInterruttoreWindow_Closing
+            _viewModel = New ConfigurazioneCellaViewModel(repository, idInterruttore)
+            AddHandler Closing, AddressOf ConfigurazioneCellaWindow_Closing
             DataContext = _viewModel
         End Sub
 
         ''' <summary>Modalità in memoria: usata dentro la maschera principale, prima che l'interruttore
-        ''' sia stato salvato. Alla conferma, chiude la finestra e i dati si leggono da <see cref="ConfigurazioniModificate"/>.</summary>
-        Public Sub New(percorsoDatabase As String, nomeInterruttore As String, configurazioniCorrenti As IEnumerable(Of ConfigurazioneInterruttore))
+        ''' sia stato salvato.</summary>
+        Public Sub New(percorsoDatabase As String, nomeInterruttore As String,
+                       taglieDisponibili As IEnumerable(Of String),
+                       lineeProdottoDisponibili As IEnumerable(Of LineaProdotto),
+                       celleCorrenti As IEnumerable(Of ConfigurazioneCella))
             InitializeComponent()
 
             Dim db As New InterruttoriDbContext(percorsoDatabase)
             Dim repository As New InterruttoreRepository(db)
-            _viewModel = New ConfigurazioneInterruttoreViewModel(repository, nomeInterruttore, configurazioniCorrenti)
+            _viewModel = New ConfigurazioneCellaViewModel(repository, nomeInterruttore, taglieDisponibili, lineeProdottoDisponibili, celleCorrenti)
             AddHandler _viewModel.Confermato, Sub()
                                                    _chiusuraConfermata = True
                                                    DialogResult = True
                                                    Close()
                                                End Sub
-            AddHandler Closing, AddressOf ConfigurazioneInterruttoreWindow_Closing
+            AddHandler Closing, AddressOf ConfigurazioneCellaWindow_Closing
             DataContext = _viewModel
         End Sub
 
         ''' <summary>Valorizzato solo se aperta in modalità in memoria e confermata (DialogResult = True).</summary>
-        Public ReadOnly Property ConfigurazioniModificate As List(Of ConfigurazioneInterruttore)
+        Public ReadOnly Property CelleModificate As List(Of ConfigurazioneCella)
             Get
-                Return _viewModel.ConfigurazioniModificate
+                Return _viewModel.CelleModificate
             End Get
         End Property
 
+        Private Sub RimuoviGruppo_Click(sender As Object, e As RoutedEventArgs)
+            Dim gruppo = TryCast(DirectCast(sender, FrameworkElement).DataContext, GruppoCella)
+            If gruppo Is Nothing Then Return
+            If Not DialogConferma.Chiedi(Me, "Rimuovere questa assegnazione di taglie e linee prodotto?") Then Return
+
+            _viewModel.RimuoviGruppo(gruppo)
+        End Sub
+
         ''' <summary>Se ci sono modifiche non salvate, chiede conferma prima di chiudere la finestra.</summary>
-        Private Sub ConfigurazioneInterruttoreWindow_Closing(sender As Object, e As CancelEventArgs)
+        Private Sub ConfigurazioneCellaWindow_Closing(sender As Object, e As CancelEventArgs)
             If _chiusuraConfermata Then Return
             If Not _viewModel.CiSonoModificheNonSalvate() Then Return
 
@@ -57,9 +68,6 @@ Namespace Views
                     e.Cancel = True
                 Case MessageBoxResult.Yes
                     _viewModel.SalvaCommand.Execute(Nothing)
-                    ' Modalità DB: salvataggio già avvenuto, si può chiudere.
-                    ' Modalità in memoria: EseguiSalva solleva Confermato, che chiude la finestra
-                    ' (siamo già in fase di chiusura: si procede senza ulteriori azioni).
                 Case MessageBoxResult.No
                     ' Si chiude scartando le modifiche.
             End Select

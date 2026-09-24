@@ -24,6 +24,7 @@
 
         <BooleanToVisibilityConverter x:Key="ConvertiBoolInVisibilita"/>
         <local:LarghezzaColonnaConverter x:Key="ConvertiLarghezzaColonna"/>
+        <local:NumeroNullableConverter x:Key="ConvertiNumeroNullable"/>
 
         <Style TargetType="TextBox">
             <Setter Property="Padding" Value="6,5"/>
@@ -142,12 +143,16 @@
             <StackPanel Orientation="Horizontal">
                 <Border Width="5" CornerRadius="3" Background="{StaticResource ColoreAccento}" Margin="0,2,14,2"/>
                 <StackPanel>
-                    <TextBlock Text="Configurazioni" FontSize="26" FontWeight="Bold" Foreground="{StaticResource ColoreTestoPrimario}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="8,2">
-                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="{Binding NomeInterruttore}"/>
+                    <TextBlock Text="Configurazione interruttore" FontSize="26" FontWeight="Bold" Foreground="{StaticResource ColoreTestoPrimario}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Seleziona le" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center"/>
+                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="7,2" Margin="6,0">
+                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="configurazioni"/>
                         </Border>
-                        <TextBlock Text="Seleziona le configurazioni applicabili a questo interruttore" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        <TextBlock Text="applicabili a questo" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center"/>
+                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="7,2" Margin="6,0">
+                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="interruttore"/>
+                        </Border>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
@@ -223,15 +228,15 @@
 
                                                         <StackPanel Grid.Column="0">
                                                             <TextBlock Text="Delta H" Style="{StaticResource EtichettaDelta}"/>
-                                                            <TextBox Text="{Binding DeltaH, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBox Text="{Binding DeltaH, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="2">
                                                             <TextBlock Text="Delta L" Style="{StaticResource EtichettaDelta}"/>
-                                                            <TextBox Text="{Binding DeltaL, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBox Text="{Binding DeltaL, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
                                                         </StackPanel>
                                                         <StackPanel Grid.Column="4">
                                                             <TextBlock Text="Delta P" Style="{StaticResource EtichettaDelta}"/>
-                                                            <TextBox Text="{Binding DeltaP, UpdateSourceTrigger=PropertyChanged}"/>
+                                                            <TextBox Text="{Binding DeltaP, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
                                                         </StackPanel>
                                                     </Grid>
                                                 </StackPanel>

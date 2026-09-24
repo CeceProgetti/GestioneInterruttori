@@ -24,6 +24,10 @@ Namespace ViewModels
         Private ReadOnly _idInterruttore As Integer?
         Private ReadOnly _timerConferma As DispatcherTimer
 
+        ''' <summary>Istantanea (Id|DeltaH|DeltaL|DeltaP delle opzioni abilitate) presa all'apertura e
+        ''' dopo ogni salvataggio, per capire se ci sono modifiche non salvate alla chiusura.</summary>
+        Private _firmaSalvata As HashSet(Of String)
+
         ''' <summary>Modalità DB: legge/scrive subito sull'interruttore già salvato.</summary>
         Public Sub New(repository As InterruttoreRepository, idInterruttore As Integer)
             _repository = repository
@@ -42,6 +46,7 @@ Namespace ViewModels
             Dim interruttore = _repository.OttieniInterruttore(idInterruttore)
             NomeInterruttore = If(interruttore?.Nome, "—")
             CaricaCatalogo(_repository.ConfigurazioniDiInterruttore(idInterruttore))
+            _firmaSalvata = CalcolaFirma()
         End Sub
 
         ''' <summary>Modalità in memoria: parte dalle configurazioni già scelte (eventualmente nessuna),
@@ -62,6 +67,7 @@ Namespace ViewModels
 
             NomeInterruttore = If(String.IsNullOrWhiteSpace(nomeInterruttore), "Nuovo interruttore", nomeInterruttore)
             CaricaCatalogo(configurazioniCorrenti.ToList())
+            _firmaSalvata = CalcolaFirma()
         End Sub
 
         Public ReadOnly Property Configurazioni As ObservableCollection(Of ConfigurazioneAssegnabile)
@@ -110,6 +116,17 @@ Namespace ViewModels
             Next
         End Sub
 
+        Private Function CalcolaFirma() As HashSet(Of String)
+            Return New HashSet(Of String)(
+                Configurazioni.Where(Function(c) c.Abilitata).
+                Select(Function(c) $"{c.IdConfigurazione}|{c.DeltaH}|{c.DeltaL}|{c.DeltaP}"))
+        End Function
+
+        ''' <summary>Usato dalla finestra per capire se avvisare alla chiusura.</summary>
+        Public Function CiSonoModificheNonSalvate() As Boolean
+            Return Not CalcolaFirma().SetEquals(_firmaSalvata)
+        End Function
+
         Private Sub EseguiSalva()
             Dim configurazioniAbilitate = Configurazioni.
                 Where(Function(c) c.Abilitata).
@@ -123,11 +140,13 @@ Namespace ViewModels
 
             If _idInterruttore.HasValue Then
                 _repository.SalvaConfigurazioni(_idInterruttore.Value, configurazioniAbilitate)
+                _firmaSalvata = CalcolaFirma()
                 _timerConferma.Stop()
                 MostraConferma = True
                 _timerConferma.Start()
             Else
                 ConfigurazioniModificate = configurazioniAbilitate
+                _firmaSalvata = CalcolaFirma()
                 RaiseEvent Confermato(Me, EventArgs.Empty)
             End If
         End Sub

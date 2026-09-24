@@ -1,0 +1,518 @@
+<Window x:Class="Views.ConfigurazioneCellaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GestioneInterruttori.Views"
+        mc:Ignorable="d"
+        Title="Configurazione cella"
+        Height="800" Width="1100"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        FontFamily="Segoe UI"
+        Background="#EEF0F4">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="ColoreAccento" Color="#D8303F"/>
+        <SolidColorBrush x:Key="ColoreAccentoScuro" Color="#B32330"/>
+        <SolidColorBrush x:Key="ColoreAccentoTenue" Color="#FBE7E9"/>
+        <SolidColorBrush x:Key="ColorePericolo" Color="#7A1F26"/>
+        <SolidColorBrush x:Key="ColorePericoloScuro" Color="#5C171C"/>
+        <SolidColorBrush x:Key="ColoreSuccesso" Color="#1E9E5A"/>
+        <SolidColorBrush x:Key="ColoreSuccessoSfondo" Color="#E4F7EC"/>
+        <SolidColorBrush x:Key="ColoreTestoPrimario" Color="#1F2430"/>
+        <SolidColorBrush x:Key="ColoreTestoSecondario" Color="#6B7280"/>
+        <SolidColorBrush x:Key="ColoreBordo" Color="#E2E4EA"/>
+
+        <BooleanToVisibilityConverter x:Key="ConvertiBoolInVisibilita"/>
+        <local:NumeroNullableConverter x:Key="ConvertiNumeroNullable"/>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="6,5"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <Style x:Key="Etichetta" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoSecondario}"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Margin" Value="0,0,0,3"/>
+        </Style>
+
+        <!-- Pulsante primario: pillola compatta con icona -->
+        <Style x:Key="PulsantePrimario" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource ColoreAccento}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="22,13"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Sfondo" Background="{TemplateBinding Background}" CornerRadius="24" Padding="{TemplateBinding Padding}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="&#10003;" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sfondo" Property="Background" Value="{StaticResource ColoreAccentoScuro}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Sfondo" Property="Background" Value="#E8B9BE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Pulsante primario compatto: solo simbolo "+", senza icona di spunta -->
+        <Style x:Key="PulsantePrimarioCompatto" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource ColoreAccento}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Sfondo" Background="{TemplateBinding Background}" CornerRadius="18" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sfondo" Property="Background" Value="{StaticResource ColoreAccentoScuro}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Sfondo" Property="Background" Value="#E8B9BE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PulsanteSecondario" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoSecondario}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{StaticResource ColoreBordo}" BorderThickness="1" CornerRadius="16" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F0F1F4"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Chip di selezione multipla per Taglie/Linee prodotto -->
+        <Style x:Key="ChipOpzione" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Sfondo" CornerRadius="16" BorderThickness="1.4" Background="White" BorderBrush="{StaticResource ColoreBordo}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Sfondo" Property="Background" Value="{StaticResource ColoreAccento}"/>
+                                <Setter TargetName="Sfondo" Property="BorderBrush" Value="{StaticResource ColoreAccento}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="False">
+                                <Setter Property="Foreground" Value="{StaticResource ColoreTestoPrimario}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Sfondo" Property="BorderBrush" Value="{StaticResource ColoreAccento}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CardSezione" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+
+        <Style x:Key="TitoloSezione" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoPrimario}"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,14"/>
+        </Style>
+
+        <!-- Card di un'assegnazione creata: bordo di accento a sinistra per distinguerla dal resto -->
+        <Style x:Key="RigaGruppo" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="BorderThickness" Value="1,1,1,1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <!-- Sotto-riquadro per un blocco di selezione (Taglie / Linee prodotto) dentro il form -->
+        <Style x:Key="RiquadroSelezione" TargetType="Border">
+            <Setter Property="Background" Value="#F7F8FA"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="EtichettaSezioneForm" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoPrimario}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+
+        <Style x:Key="SuggerimentoSezioneForm" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ColoreTestoSecondario}"/>
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="FontStyle" Value="Italic"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <!-- Numeretto circolare davanti al titolo di un blocco del form -->
+        <Style x:Key="NumeroBlocco" TargetType="Border">
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="CornerRadius" Value="11"/>
+            <Setter Property="Background" Value="{StaticResource ColoreAccento}"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+        </Style>
+
+        <Style x:Key="TestoNumeroBlocco" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Pillola di sola lettura per mostrare una taglia/linea dentro un'assegnazione già creata -->
+        <Style x:Key="PillolaValore" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource ColoreAccentoTenue}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="9,3"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+        </Style>
+
+        <Style x:Key="TestoPillolaValore" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ColoreAccentoScuro}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- Mini-etichetta per un valore dimensionale nella card di un'assegnazione -->
+        <Style x:Key="RiquadroDimensione" TargetType="Border">
+            <Setter Property="Background" Value="#F7F8FA"/>
+            <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Intestazione -->
+        <Border Grid.Row="0" Margin="0,0,0,18" Padding="0,0,0,16" BorderBrush="{StaticResource ColoreBordo}" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="5" CornerRadius="3" Background="{StaticResource ColoreAccento}" Margin="0,2,14,2"/>
+                <StackPanel>
+                    <TextBlock Text="Configurazione cella" FontSize="26" FontWeight="Bold" Foreground="{StaticResource ColoreTestoPrimario}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                        <TextBlock Text="Seleziona" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center"/>
+                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="7,2" Margin="6,0">
+                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="taglie"/>
+                        </Border>
+                        <TextBlock Text="e" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center"/>
+                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="7,2" Margin="6,0">
+                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="linee prodotto"/>
+                        </Border>
+                        <TextBlock Text=", poi assegna le" Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center"/>
+                        <Border Background="{StaticResource ColoreAccentoTenue}" CornerRadius="4" Padding="7,2" Margin="6,0">
+                            <TextBlock Foreground="{StaticResource ColoreAccentoScuro}" FontSize="12.5" FontWeight="SemiBold" Text="dimensioni della cella"/>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Banner di conferma salvataggio -->
+        <Border Grid.Row="1"
+                Background="{StaticResource ColoreSuccessoSfondo}"
+                BorderBrush="{StaticResource ColoreSuccesso}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,9"
+                Margin="0,0,0,12"
+                Visibility="{Binding MostraConferma, Converter={StaticResource ConvertiBoolInVisibilita}}">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="18" Height="18" CornerRadius="9" Background="{StaticResource ColoreSuccesso}" Margin="0,0,10,0">
+                    <TextBlock Text="&#10003;" Foreground="White" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock Text="Modifiche salvate correttamente" Foreground="{StaticResource ColoreSuccesso}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Form per una nuova assegnazione -->
+        <Border Grid.Row="2" Style="{StaticResource CardSezione}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                    <Border Width="4" Height="16" CornerRadius="2" Background="{StaticResource ColoreAccento}" Margin="0,0,8,0"/>
+                    <TextBlock Text="Nuova assegnazione" Style="{StaticResource TitoloSezione}" Margin="0"/>
+                </StackPanel>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="1.35*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource RiquadroSelezione}" Margin="0" VerticalAlignment="Stretch">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NumeroBlocco}" Width="18" Height="18" Margin="0,0,7,0">
+                                    <TextBlock Text="1" Style="{StaticResource TestoNumeroBlocco}" FontSize="10.5"/>
+                                </Border>
+                                <TextBlock Text="Taglie — tocca per selezionarne una o più" Style="{StaticResource EtichettaSezioneForm}" FontSize="12"/>
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding TaglieDisponibili}" Margin="25,8,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ToggleButton Style="{StaticResource ChipOpzione}" Content="{Binding Taglia}" IsChecked="{Binding Selezionata, Mode=TwoWay}" Padding="18,10" FontSize="14.5" Margin="0,0,8,8"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource RiquadroSelezione}" Margin="0" VerticalAlignment="Stretch">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NumeroBlocco}" Width="18" Height="18" Margin="0,0,7,0">
+                                    <TextBlock Text="2" Style="{StaticResource TestoNumeroBlocco}" FontSize="10.5"/>
+                                </Border>
+                                <TextBlock Text="Linee prodotto — tocca per selezionarne una o più" Style="{StaticResource EtichettaSezioneForm}" FontSize="12"/>
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding LineeProdottoDisponibili}" Margin="25,8,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ToggleButton Style="{StaticResource ChipOpzione}" Content="{Binding Nome}" IsChecked="{Binding Selezionata, Mode=TwoWay}" Padding="18,10" FontSize="14.5" Margin="0,0,8,8"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="4" Style="{StaticResource RiquadroSelezione}" Margin="0" VerticalAlignment="Stretch">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Border Style="{StaticResource NumeroBlocco}" Width="18" Height="18" Margin="0,0,7,0">
+                                    <TextBlock Text="3" Style="{StaticResource TestoNumeroBlocco}" FontSize="10.5"/>
+                                </Border>
+                                <TextBlock Text="Dimensioni della cella" Style="{StaticResource EtichettaSezioneForm}" FontSize="12"/>
+                            </StackPanel>
+
+                            <Grid Margin="25,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="6"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0">
+                                    <TextBlock Text="Altezza" Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaAltezzaCella, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="2">
+                                    <TextBlock Text="Larghezza" Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaLarghezzaCella, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="4">
+                                    <TextBlock Text="Profondità" Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaProfonditaCella, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="2" Grid.Column="0">
+                                    <TextBlock Text="Altezza vert." Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaAltezzaCellaVerticale, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="2">
+                                    <TextBlock Text="Larghezza vert." Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaLarghezzaCellaVerticale, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ConvertiNumeroNullable}}"/>
+                                </StackPanel>
+                                <Button Grid.Row="2" Grid.Column="4" Content="+ Aggiungi" Style="{StaticResource PulsantePrimarioCompatto}"
+                                        VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+                                        Command="{Binding AggiungiGruppoCommand}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Assegnazioni create -->
+        <Border Grid.Row="3" Style="{StaticResource CardSezione}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Text="Assegnazioni" Style="{StaticResource TitoloSezione}"/>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding Gruppi}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource RigaGruppo}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="6"/>
+                                            <ColumnDefinition Width="16"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Grid.Column="0" Background="{StaticResource ColoreAccento}" CornerRadius="3" Margin="-16,-14,0,-14"/>
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="TAGLIE" FontWeight="Bold" FontSize="10.5" Foreground="{StaticResource ColoreTestoSecondario}" Margin="0,0,0,4"/>
+                                            <ItemsControl ItemsSource="{Binding Taglie}" Margin="0,0,0,10">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Style="{StaticResource PillolaValore}">
+                                                            <TextBlock Text="{Binding}" Style="{StaticResource TestoPillolaValore}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <TextBlock Text="LINEE PRODOTTO" FontWeight="Bold" FontSize="10.5" Foreground="{StaticResource ColoreTestoSecondario}" Margin="0,0,0,4"/>
+                                            <ItemsControl ItemsSource="{Binding LineeProdotto}" Margin="0,0,0,10">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Style="{StaticResource PillolaValore}">
+                                                            <TextBlock Text="{Binding Nome}" Style="{StaticResource TestoPillolaValore}"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Style="{StaticResource RiquadroDimensione}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Alt " FontSize="11" Foreground="{StaticResource ColoreTestoSecondario}"/>
+                                                        <TextBlock Text="{Binding AltezzaCella, Mode=OneWay}" FontSize="11" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border Style="{StaticResource RiquadroDimensione}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Larg " FontSize="11" Foreground="{StaticResource ColoreTestoSecondario}"/>
+                                                        <TextBlock Text="{Binding LarghezzaCella, Mode=OneWay}" FontSize="11" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border Style="{StaticResource RiquadroDimensione}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Alt.vert " FontSize="11" Foreground="{StaticResource ColoreTestoSecondario}"/>
+                                                        <TextBlock Text="{Binding AltezzaCellaVerticale, Mode=OneWay}" FontSize="11" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border Style="{StaticResource RiquadroDimensione}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Larg.vert " FontSize="11" Foreground="{StaticResource ColoreTestoSecondario}"/>
+                                                        <TextBlock Text="{Binding LarghezzaCellaVerticale, Mode=OneWay}" FontSize="11" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Border Style="{StaticResource RiquadroDimensione}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Prof " FontSize="11" Foreground="{StaticResource ColoreTestoSecondario}"/>
+                                                        <TextBlock Text="{Binding ProfonditaCella, Mode=OneWay}" FontSize="11" FontWeight="SemiBold"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="3" Content="Rimuovi" Style="{StaticResource PulsanteSecondario}"
+                                                VerticalAlignment="Top"
+                                                Click="RimuoviGruppo_Click"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+            <Button Content="Salva modifiche" Style="{StaticResource PulsantePrimario}" Command="{Binding SalvaCommand}"/>
+        </StackPanel>
+    </Grid>
+</Window>

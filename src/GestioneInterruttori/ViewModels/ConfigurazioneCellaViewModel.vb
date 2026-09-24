@@ -1,0 +1,266 @@
+Imports System.Collections.ObjectModel
+Imports System.ComponentModel
+Imports System.Linq
+Imports System.Runtime.CompilerServices
+Imports System.Windows.Threading
+Imports GestioneInterruttori.Data
+Imports GestioneInterruttori.Models
+
+Namespace ViewModels
+    ''' <summary>
+    ''' ViewModel della sola sezione "Configurazione cella".
+    ''' Due modalità, come per ConfigurazioneInterruttoreViewModel:
+    ''' - DB (idInterruttore valido): legge/scrive direttamente su ConfigurazioneCella.
+    ''' - In memoria (nessun idInterruttore): lavora su una lista passata dal chiamante e la
+    '''   restituisce alla chiusura, senza toccare il DB.
+    ''' Una taglia o linea prodotto già usata in un'assegnazione non è più selezionabile
+    ''' per crearne una nuova, finché non viene tolta da quella assegnazione.
+    ''' </summary>
+    Public Class ConfigurazioneCellaViewModel
+        Implements INotifyPropertyChanged
+
+        Private ReadOnly _repository As InterruttoreRepository
+        Private ReadOnly _idInterruttore As Integer?
+        Private _timerConferma As DispatcherTimer
+
+        Private _tutteLeTaglie As List(Of String)
+        Private _tutteLeLineeProdotto As List(Of LineaProdotto)
+
+        ''' <summary>Istantanea dei Gruppi presa all'apertura e dopo ogni salvataggio, per capire
+        ''' se ci sono modifiche non salvate alla chiusura.</summary>
+        Private _firmaSalvata As HashSet(Of String)
+
+        ''' <summary>Modalità DB: interruttore già salvato.</summary>
+        Public Sub New(repository As InterruttoreRepository, idInterruttore As Integer)
+            _repository = repository
+            _idInterruttore = idInterruttore
+
+            Inizializza()
+
+            Dim interruttore = _repository.OttieniInterruttore(idInterruttore)
+            NomeInterruttore = If(interruttore?.Nome, "—")
+
+            _tutteLeTaglie = _repository.TaglieDiInterruttore(idInterruttore).Select(Function(t) t.Taglia).ToList()
+            _tutteLeLineeProdotto = _repository.ElencoLineeProdotto()
+            Dim celleEsistenti = _repository.CelleDiInterruttore(idInterruttore)
+
+            CaricaGruppiIniziali(celleEsistenti, _tutteLeLineeProdotto)
+            AggiornaChipDisponibili()
+            _firmaSalvata = CalcolaFirma()
+        End Sub
+
+        ''' <summary>Modalità in memoria: usata dentro la maschera principale, prima che l'interruttore
+        ''' sia stato salvato.</summary>
+        Public Sub New(repository As InterruttoreRepository, nomeInterruttore As String,
+                       taglieDisponibili As IEnumerable(Of String),
+                       lineeProdottoDisponibili As IEnumerable(Of LineaProdotto),
+                       celleCorrenti As IEnumerable(Of ConfigurazioneCella))
+            _repository = repository
+            _idInterruttore = Nothing
+
+            Inizializza()
+
+            NomeInterruttore = If(String.IsNullOrWhiteSpace(nomeInterruttore), "Nuovo interruttore", nomeInterruttore)
+            _tutteLeTaglie = taglieDisponibili.ToList()
+            _tutteLeLineeProdotto = lineeProdottoDisponibili.ToList()
+
+            CaricaGruppiIniziali(celleCorrenti.ToList(), _tutteLeLineeProdotto)
+            AggiornaChipDisponibili()
+            _firmaSalvata = CalcolaFirma()
+        End Sub
+
+        Private Sub Inizializza()
+            TaglieDisponibili = New ObservableCollection(Of TagliaSelezionabile)
+            LineeProdottoDisponibili = New ObservableCollection(Of LineaProdottoSelezionabile)
+            Gruppi = New ObservableCollection(Of GruppoCella)
+
+            AggiungiGruppoCommand = New RelayCommand(AddressOf EseguiAggiungiGruppo, AddressOf PuoAggiungereGruppo)
+            SalvaCommand = New RelayCommand(AddressOf EseguiSalva, Function() Gruppi.Count > 0)
+
+            _timerConferma = New DispatcherTimer With {.Interval = TimeSpan.FromSeconds(2.5)}
+            AddHandler _timerConferma.Tick, Sub()
+                                                 _timerConferma.Stop()
+                                                 MostraConferma = False
+                                             End Sub
+        End Sub
+
+        ''' <summary>
+        ''' Ricostruisce le chip selezionabili, escludendo le taglie/linee già usate in
+        ''' un'assegnazione esistente (una taglia/linea non può stare in due assegnazioni insieme).
+        ''' </summary>
+        Private Sub AggiornaChipDisponibili()
+            Dim taglieUsate = Gruppi.SelectMany(Function(g) g.Taglie).ToHashSet()
+            Dim lineeUsate = Gruppi.SelectMany(Function(g) g.LineeProdotto.Select(Function(l) l.Id)).ToHashSet()
+
+            TaglieDisponibili.Clear()
+            For Each taglia In _tutteLeTaglie.Where(Function(t) Not taglieUsate.Contains(t))
+                Dim riga As New TagliaSelezionabile With {.Taglia = taglia}
+                AddHandler riga.PropertyChanged, Sub() DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
+                TaglieDisponibili.Add(riga)
+            Next
+
+            LineeProdottoDisponibili.Clear()
+            For Each linea In _tutteLeLineeProdotto.Where(Function(l) Not lineeUsate.Contains(l.Id))
+                Dim riga As New LineaProdottoSelezionabile(linea)
+                AddHandler riga.PropertyChanged, Sub() DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
+                LineeProdottoDisponibili.Add(riga)
+            Next
+
+            DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
+        End Sub
+
+        ''' <summary>
+        ''' Ricostruisce i gruppi visualizzati raggruppando le celle esistenti per valori identici:
+        ''' celle con gli stessi 5 valori vengono mostrate come un unico gruppo (Taglie×Linee), invece
+        ''' che come tante righe singole.
+        ''' </summary>
+        Private Sub CaricaGruppiIniziali(celle As List(Of ConfigurazioneCella), lineeProdotto As List(Of LineaProdotto))
+            Gruppi.Clear()
+            Dim raggruppate = celle.GroupBy(Function(c) (c.AltezzaCella, c.LarghezzaCella, c.AltezzaCellaVerticale, c.LarghezzaCellaVerticale, c.ProfonditaCella))
+            For Each gruppo In raggruppate
+                Dim taglieGruppo = gruppo.Select(Function(c) c.Taglia).Distinct().ToList()
+                Dim idLineeGruppo = gruppo.Select(Function(c) c.IdLineaProdotto).Distinct()
+                Dim lineeGruppo = lineeProdotto.
+                    Where(Function(l) idLineeGruppo.Contains(l.Id)).ToList()
+
+                Gruppi.Add(New GruppoCella With {
+                    .Taglie = taglieGruppo,
+                    .LineeProdotto = lineeGruppo,
+                    .AltezzaCella = gruppo.Key.AltezzaCella,
+                    .LarghezzaCella = gruppo.Key.LarghezzaCella,
+                    .AltezzaCellaVerticale = gruppo.Key.AltezzaCellaVerticale,
+                    .LarghezzaCellaVerticale = gruppo.Key.LarghezzaCellaVerticale,
+                    .ProfonditaCella = gruppo.Key.ProfonditaCella
+                })
+            Next
+        End Sub
+
+        Public Property TaglieDisponibili As ObservableCollection(Of TagliaSelezionabile)
+        Public Property LineeProdottoDisponibili As ObservableCollection(Of LineaProdottoSelezionabile)
+        Public Property Gruppi As ObservableCollection(Of GruppoCella)
+
+        Public Property NomeInterruttore As String
+
+        Public Property NuovaAltezzaCella As Double?
+        Public Property NuovaLarghezzaCella As Double?
+        Public Property NuovaAltezzaCellaVerticale As Double?
+        Public Property NuovaLarghezzaCellaVerticale As Double?
+        Public Property NuovaProfonditaCella As Double?
+
+        Public Property AggiungiGruppoCommand As RelayCommand
+        Public Property SalvaCommand As RelayCommand
+
+        ''' <summary>Valorizzato dopo il salvataggio in modalità in memoria (Nothing in modalità DB).</summary>
+        Public Property CelleModificate As List(Of ConfigurazioneCella)
+
+        ''' <summary>Sollevato quando, in modalità in memoria, il salvataggio è completato: la finestra può chiudersi.</summary>
+        Public Event Confermato As EventHandler
+
+        Private _mostraConferma As Boolean
+        Public Property MostraConferma As Boolean
+            Get
+                Return _mostraConferma
+            End Get
+            Set(value As Boolean)
+                _mostraConferma = value
+                OnPropertyChanged()
+            End Set
+        End Property
+
+        Private Function PuoAggiungereGruppo() As Boolean
+            Return TaglieDisponibili.Any(Function(t) t.Selezionata) AndAlso LineeProdottoDisponibili.Any(Function(l) l.Selezionata)
+        End Function
+
+        Private Sub EseguiAggiungiGruppo()
+            Dim taglieScelte = TaglieDisponibili.Where(Function(t) t.Selezionata).Select(Function(t) t.Taglia).ToList()
+            Dim lineeScelte = LineeProdottoDisponibili.
+                Where(Function(l) l.Selezionata).
+                Select(Function(l) New LineaProdotto With {.Id = l.Id, .Nome = l.Nome}).ToList()
+            If taglieScelte.Count = 0 OrElse lineeScelte.Count = 0 Then Return
+
+            Gruppi.Add(New GruppoCella With {
+                .Taglie = taglieScelte,
+                .LineeProdotto = lineeScelte,
+                .AltezzaCella = NuovaAltezzaCella,
+                .LarghezzaCella = NuovaLarghezzaCella,
+                .AltezzaCellaVerticale = NuovaAltezzaCellaVerticale,
+                .LarghezzaCellaVerticale = NuovaLarghezzaCellaVerticale,
+                .ProfonditaCella = NuovaProfonditaCella
+            })
+
+            NuovaAltezzaCella = Nothing
+            NuovaLarghezzaCella = Nothing
+            NuovaAltezzaCellaVerticale = Nothing
+            NuovaLarghezzaCellaVerticale = Nothing
+            NuovaProfonditaCella = Nothing
+            OnPropertyChanged(NameOf(NuovaAltezzaCella))
+            OnPropertyChanged(NameOf(NuovaLarghezzaCella))
+            OnPropertyChanged(NameOf(NuovaAltezzaCellaVerticale))
+            OnPropertyChanged(NameOf(NuovaLarghezzaCellaVerticale))
+            OnPropertyChanged(NameOf(NuovaProfonditaCella))
+
+            AggiornaChipDisponibili() ' toglie dalla selezione le taglie/linee appena assegnate
+            DirectCast(SalvaCommand, RelayCommand).RaiseCanExecuteChanged()
+        End Sub
+
+        Public Sub RimuoviGruppo(gruppo As GruppoCella)
+            If gruppo Is Nothing Then Return
+            Gruppi.Remove(gruppo)
+            AggiornaChipDisponibili() ' le taglie/linee di quel gruppo tornano selezionabili
+            DirectCast(SalvaCommand, RelayCommand).RaiseCanExecuteChanged()
+        End Sub
+
+        Private Function CalcolaFirma() As HashSet(Of String)
+            Return New HashSet(Of String)(
+                Gruppi.Select(Function(g)
+                                  Dim taglie = String.Join(",", g.Taglie.OrderBy(Function(t) t))
+                                  Dim linee = String.Join(",", g.LineeProdotto.Select(Function(l) l.Id).OrderBy(Function(id) id))
+                                  Return $"{taglie}|{linee}|{g.AltezzaCella}|{g.LarghezzaCella}|{g.AltezzaCellaVerticale}|{g.LarghezzaCellaVerticale}|{g.ProfonditaCella}"
+                              End Function))
+        End Function
+
+        ''' <summary>Usato dalla finestra per capire se avvisare alla chiusura.</summary>
+        Public Function CiSonoModificheNonSalvate() As Boolean
+            Return Not CalcolaFirma().SetEquals(_firmaSalvata)
+        End Function
+
+        Private Sub EseguiSalva()
+            Dim celle As New List(Of ConfigurazioneCella)
+            For Each gruppo In Gruppi
+                For Each taglia In gruppo.Taglie
+                    For Each linea In gruppo.LineeProdotto
+                        celle.Add(New ConfigurazioneCella With {
+                            .IdLineaProdotto = linea.Id,
+                            .IdInterruttore = If(_idInterruttore, 0),
+                            .Taglia = taglia,
+                            .AltezzaCella = gruppo.AltezzaCella,
+                            .LarghezzaCella = gruppo.LarghezzaCella,
+                            .AltezzaCellaVerticale = gruppo.AltezzaCellaVerticale,
+                            .LarghezzaCellaVerticale = gruppo.LarghezzaCellaVerticale,
+                            .ProfonditaCella = gruppo.ProfonditaCella
+                        })
+                    Next
+                Next
+            Next
+
+            If _idInterruttore.HasValue Then
+                _repository.SalvaCelle(_idInterruttore.Value, celle)
+                _firmaSalvata = CalcolaFirma()
+                _timerConferma.Stop()
+                MostraConferma = True
+                _timerConferma.Start()
+            Else
+                CelleModificate = celle
+                _firmaSalvata = CalcolaFirma()
+                RaiseEvent Confermato(Me, EventArgs.Empty)
+            End If
+        End Sub
+
+        Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
+
+        Private Sub OnPropertyChanged(<CallerMemberName> Optional nomeProprieta As String = Nothing)
+            RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(nomeProprieta))
+        End Sub
+
+    End Class
+End Namespace

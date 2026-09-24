@@ -219,6 +219,36 @@ Namespace Data
             End Using
         End Sub
 
+        ''' <summary>
+        ''' Salva solo la sezione Celle di un interruttore già esistente
+        ''' (utile per testare/lavorare su questa sola parte della maschera).
+        ''' </summary>
+        Public Sub SalvaCelle(idInterruttore As Integer, celle As IEnumerable(Of ConfigurazioneCella))
+            Using connessione = _db.CreaConnessione()
+                Using transazione = connessione.BeginTransaction()
+                    RigenerraFigli(connessione, transazione, "ConfigurazioneCella", "IdInterruttore", idInterruttore)
+                    For Each cella In celle
+                        Using comando = connessione.CreateCommand()
+                            comando.Transaction = transazione
+                            comando.CommandText = "
+                                INSERT INTO ConfigurazioneCella (IdLineaProdotto, IdInterruttore, Taglia, AltezzaCella, LarghezzaCella, AltezzaCellaVerticale, LarghezzaCellaVerticale, ProfonditaCella)
+                                VALUES ($idLinea, $id, $taglia, $altezza, $larghezza, $altezzaV, $larghezzaV, $profondita)"
+                            comando.Parameters.AddWithValue("$idLinea", cella.IdLineaProdotto)
+                            comando.Parameters.AddWithValue("$id", idInterruttore)
+                            comando.Parameters.AddWithValue("$taglia", cella.Taglia)
+                            comando.Parameters.AddWithValue("$altezza", AValoreONullo(cella.AltezzaCella))
+                            comando.Parameters.AddWithValue("$larghezza", AValoreONullo(cella.LarghezzaCella))
+                            comando.Parameters.AddWithValue("$altezzaV", AValoreONullo(cella.AltezzaCellaVerticale))
+                            comando.Parameters.AddWithValue("$larghezzaV", AValoreONullo(cella.LarghezzaCellaVerticale))
+                            comando.Parameters.AddWithValue("$profondita", AValoreONullo(cella.ProfonditaCella))
+                            comando.ExecuteNonQuery()
+                        End Using
+                    Next
+                    transazione.Commit()
+                End Using
+            End Using
+        End Sub
+
         Public Sub Elimina(idInterruttore As Integer)
             Using connessione = _db.CreaConnessione()
                 Using transazione = connessione.BeginTransaction()
