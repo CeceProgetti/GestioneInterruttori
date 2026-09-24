@@ -76,6 +76,7 @@ Namespace ViewModels
 
             AggiungiGruppoCommand = New RelayCommand(AddressOf EseguiAggiungiGruppo, AddressOf PuoAggiungereGruppo)
             SalvaCommand = New RelayCommand(AddressOf EseguiSalva, Function() Gruppi.Count > 0)
+            SelezionaTutteTaglieCommand = New RelayCommand(AddressOf EseguiSelezionaTutteTaglie, Function() TaglieDisponibili.Count > 0)
 
             _timerConferma = New DispatcherTimer With {.Interval = TimeSpan.FromSeconds(2.5)}
             AddHandler _timerConferma.Tick, Sub()
@@ -85,47 +86,76 @@ Namespace ViewModels
         End Sub
 
         ''' <summary>
-        ''' Ricostruisce le chip selezionabili, escludendo le taglie/linee già usate in
-        ''' un'assegnazione esistente (una taglia/linea non può stare in due assegnazioni insieme).
+        ''' Ricostruisce le chip selezionabili. Le taglie già assegnate alla linea prodotto
+        ''' correntemente selezionata vengono escluse (una stessa taglia non può ripetersi due
+        ''' volte per la stessa linea); le linee prodotto restano sempre tutte selezionabili,
+        ''' perché una linea può avere più assegnazioni, una per ciascun sottoinsieme di taglie.
         ''' </summary>
         Private Sub AggiornaChipDisponibili()
-            Dim taglieUsate = Gruppi.SelectMany(Function(g) g.Taglie).ToHashSet()
-            Dim lineeUsate = Gruppi.SelectMany(Function(g) g.LineeProdotto.Select(Function(l) l.Id)).ToHashSet()
+            Dim idLineaSelezionata = LineeProdottoDisponibili.FirstOrDefault(Function(l) l.Selezionata)?.Id
+
+            Dim taglieUsate As HashSet(Of String)
+            If idLineaSelezionata.HasValue Then
+                taglieUsate = Gruppi.
+                    Where(Function(g) g.LineaProdotto.Id = idLineaSelezionata.Value).
+                    SelectMany(Function(g) g.Taglie).ToHashSet()
+            Else
+                taglieUsate = New HashSet(Of String)()
+            End If
+
+            Dim taglieSelezionatePrecedenti = TaglieDisponibili.Where(Function(t) t.Selezionata).Select(Function(t) t.Taglia).ToHashSet()
 
             TaglieDisponibili.Clear()
             For Each taglia In _tutteLeTaglie.Where(Function(t) Not taglieUsate.Contains(t))
-                Dim riga As New TagliaSelezionabile With {.Taglia = taglia}
+                Dim riga As New TagliaSelezionabile With {.Taglia = taglia, .Selezionata = taglieSelezionatePrecedenti.Contains(taglia)}
                 AddHandler riga.PropertyChanged, Sub() DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
                 TaglieDisponibili.Add(riga)
             Next
 
-            LineeProdottoDisponibili.Clear()
-            For Each linea In _tutteLeLineeProdotto.Where(Function(l) Not lineeUsate.Contains(l.Id))
-                Dim riga As New LineaProdottoSelezionabile(linea)
-                AddHandler riga.PropertyChanged, Sub() DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
-                LineeProdottoDisponibili.Add(riga)
-            Next
+            If LineeProdottoDisponibili.Count = 0 Then
+                For Each linea In _tutteLeLineeProdotto
+                    Dim riga As New LineaProdottoSelezionabile(linea)
+                    AddHandler riga.PropertyChanged, AddressOf LineaProdotto_PropertyChanged
+                    LineeProdottoDisponibili.Add(riga)
+                Next
+            End If
 
+            DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
+            DirectCast(SelezionaTutteTaglieCommand, RelayCommand).RaiseCanExecuteChanged()
+        End Sub
+
+        ''' <summary>Selezione singola: quando una linea prodotto viene selezionata, le altre si deselezionano;
+        ''' cambia anche l'insieme di taglie già usate da escludere, quindi si ricostruiscono le chip.</summary>
+        Private Sub LineaProdotto_PropertyChanged(sender As Object, e As PropertyChangedEventArgs)
+            If e.PropertyName <> NameOf(LineaProdottoSelezionabile.Selezionata) Then Return
+
+            Dim riga = DirectCast(sender, LineaProdottoSelezionabile)
+            If riga.Selezionata Then
+                For Each altra In LineeProdottoDisponibili.Where(Function(l) Not ReferenceEquals(l, riga) AndAlso l.Selezionata)
+                    altra.Selezionata = False
+                Next
+            End If
+
+            AggiornaChipDisponibili()
             DirectCast(AggiungiGruppoCommand, RelayCommand).RaiseCanExecuteChanged()
         End Sub
 
         ''' <summary>
-        ''' Ricostruisce i gruppi visualizzati raggruppando le celle esistenti per valori identici:
-        ''' celle con gli stessi 5 valori vengono mostrate come un unico gruppo (Taglie×Linee), invece
-        ''' che come tante righe singole.
+        ''' Ricostruisce i gruppi visualizzati raggruppando le celle esistenti per linea prodotto e
+        ''' valori dimensionali identici: celle con la stessa linea e gli stessi 5 valori vengono
+        ''' mostrate come un unico gruppo (una linea, più taglie), invece che come righe singole.
         ''' </summary>
         Private Sub CaricaGruppiIniziali(celle As List(Of ConfigurazioneCella), lineeProdotto As List(Of LineaProdotto))
             Gruppi.Clear()
-            Dim raggruppate = celle.GroupBy(Function(c) (c.AltezzaCella, c.LarghezzaCella, c.AltezzaCellaVerticale, c.LarghezzaCellaVerticale, c.ProfonditaCella))
+            Dim raggruppate = celle.GroupBy(Function(c) (c.IdLineaProdotto, c.AltezzaCella, c.LarghezzaCella, c.AltezzaCellaVerticale, c.LarghezzaCellaVerticale, c.ProfonditaCella))
             For Each gruppo In raggruppate
                 Dim taglieGruppo = gruppo.Select(Function(c) c.Taglia).Distinct().ToList()
-                Dim idLineeGruppo = gruppo.Select(Function(c) c.IdLineaProdotto).Distinct()
-                Dim lineeGruppo = lineeProdotto.
-                    Where(Function(l) idLineeGruppo.Contains(l.Id)).ToList()
+                Dim linea = lineeProdotto.FirstOrDefault(Function(l) l.Id = gruppo.Key.IdLineaProdotto)
+                If linea Is Nothing Then Continue For
 
                 Gruppi.Add(New GruppoCella With {
+                    .LineaProdotto = linea,
                     .Taglie = taglieGruppo,
-                    .LineeProdotto = lineeGruppo,
                     .AltezzaCella = gruppo.Key.AltezzaCella,
                     .LarghezzaCella = gruppo.Key.LarghezzaCella,
                     .AltezzaCellaVerticale = gruppo.Key.AltezzaCellaVerticale,
@@ -148,6 +178,7 @@ Namespace ViewModels
         Public Property NuovaProfonditaCella As Double?
 
         Public Property AggiungiGruppoCommand As RelayCommand
+        Public Property SelezionaTutteTaglieCommand As RelayCommand
         Public Property SalvaCommand As RelayCommand
 
         ''' <summary>Valorizzato dopo il salvataggio in modalità in memoria (Nothing in modalità DB).</summary>
@@ -171,16 +202,22 @@ Namespace ViewModels
             Return TaglieDisponibili.Any(Function(t) t.Selezionata) AndAlso LineeProdottoDisponibili.Any(Function(l) l.Selezionata)
         End Function
 
+        ''' <summary>Se sono già tutte selezionate le deseleziona, altrimenti le seleziona tutte.</summary>
+        Private Sub EseguiSelezionaTutteTaglie()
+            Dim selezionaTutte = Not TaglieDisponibili.All(Function(t) t.Selezionata)
+            For Each taglia In TaglieDisponibili
+                taglia.Selezionata = selezionaTutte
+            Next
+        End Sub
+
         Private Sub EseguiAggiungiGruppo()
             Dim taglieScelte = TaglieDisponibili.Where(Function(t) t.Selezionata).Select(Function(t) t.Taglia).ToList()
-            Dim lineeScelte = LineeProdottoDisponibili.
-                Where(Function(l) l.Selezionata).
-                Select(Function(l) New LineaProdotto With {.Id = l.Id, .Nome = l.Nome}).ToList()
-            If taglieScelte.Count = 0 OrElse lineeScelte.Count = 0 Then Return
+            Dim lineaScelta = LineeProdottoDisponibili.Where(Function(l) l.Selezionata).Select(Function(l) New LineaProdotto With {.Id = l.Id, .Nome = l.Nome}).FirstOrDefault()
+            If taglieScelte.Count = 0 OrElse lineaScelta Is Nothing Then Return
 
             Gruppi.Add(New GruppoCella With {
+                .LineaProdotto = lineaScelta,
                 .Taglie = taglieScelte,
-                .LineeProdotto = lineeScelte,
                 .AltezzaCella = NuovaAltezzaCella,
                 .LarghezzaCella = NuovaLarghezzaCella,
                 .AltezzaCellaVerticale = NuovaAltezzaCellaVerticale,
@@ -214,8 +251,7 @@ Namespace ViewModels
             Return New HashSet(Of String)(
                 Gruppi.Select(Function(g)
                                   Dim taglie = String.Join(",", g.Taglie.OrderBy(Function(t) t))
-                                  Dim linee = String.Join(",", g.LineeProdotto.Select(Function(l) l.Id).OrderBy(Function(id) id))
-                                  Return $"{taglie}|{linee}|{g.AltezzaCella}|{g.LarghezzaCella}|{g.AltezzaCellaVerticale}|{g.LarghezzaCellaVerticale}|{g.ProfonditaCella}"
+                                  Return $"{taglie}|{g.LineaProdotto.Id}|{g.AltezzaCella}|{g.LarghezzaCella}|{g.AltezzaCellaVerticale}|{g.LarghezzaCellaVerticale}|{g.ProfonditaCella}"
                               End Function))
         End Function
 
@@ -228,18 +264,16 @@ Namespace ViewModels
             Dim celle As New List(Of ConfigurazioneCella)
             For Each gruppo In Gruppi
                 For Each taglia In gruppo.Taglie
-                    For Each linea In gruppo.LineeProdotto
-                        celle.Add(New ConfigurazioneCella With {
-                            .IdLineaProdotto = linea.Id,
-                            .IdInterruttore = If(_idInterruttore, 0),
-                            .Taglia = taglia,
-                            .AltezzaCella = gruppo.AltezzaCella,
-                            .LarghezzaCella = gruppo.LarghezzaCella,
-                            .AltezzaCellaVerticale = gruppo.AltezzaCellaVerticale,
-                            .LarghezzaCellaVerticale = gruppo.LarghezzaCellaVerticale,
-                            .ProfonditaCella = gruppo.ProfonditaCella
-                        })
-                    Next
+                    celle.Add(New ConfigurazioneCella With {
+                        .IdLineaProdotto = gruppo.LineaProdotto.Id,
+                        .IdInterruttore = If(_idInterruttore, 0),
+                        .Taglia = taglia,
+                        .AltezzaCella = gruppo.AltezzaCella,
+                        .LarghezzaCella = gruppo.LarghezzaCella,
+                        .AltezzaCellaVerticale = gruppo.AltezzaCellaVerticale,
+                        .LarghezzaCellaVerticale = gruppo.LarghezzaCellaVerticale,
+                        .ProfonditaCella = gruppo.ProfonditaCella
+                    })
                 Next
             Next
 
