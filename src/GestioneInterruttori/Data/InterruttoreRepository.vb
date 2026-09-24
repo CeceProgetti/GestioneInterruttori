@@ -243,10 +243,10 @@ Namespace Data
         Private Sub AggiungiParametriInterruttore(comando As SqliteCommand, interruttore As Interruttore)
             comando.Parameters.AddWithValue("$idMarca", interruttore.IdMarca)
             comando.Parameters.AddWithValue("$idSerie", interruttore.IdSerie)
-            comando.Parameters.AddWithValue("$nome", interruttore.Nome)
+            comando.Parameters.AddWithValue("$nome", If(interruttore.Nome, ""))
             comando.Parameters.AddWithValue("$idTipo", interruttore.IdTipo)
             comando.Parameters.AddWithValue("$poli", interruttore.NumeroPoli)
-            comando.Parameters.AddWithValue("$radiceDwg", interruttore.RadiceDwg)
+            comando.Parameters.AddWithValue("$radiceDwg", If(interruttore.RadiceDwg, ""))
         End Sub
 
         Private Sub RigenerraFigli(connessione As SqliteConnection, transazione As SqliteTransaction, tabella As String, colonnaFk As String, idInterruttore As Integer)

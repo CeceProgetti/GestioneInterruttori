@@ -37,7 +37,9 @@
             <Setter Property="CornerRadius" Value="10"/>
         </Style>
 
-        <!-- Card di una sezione del dettaglio (Anagrafica / Configurazione interruttore / Taglie / ecc.) -->
+        <!-- Card di una sezione del dettaglio (Anagrafica / Configurazione interruttore / Taglie / ecc.)
+             Niente Effect/ombra qui: un DropShadowEffect forza WPF a rasterizzare l'intera card in
+             bitmap, e sfoca tutto il testo contenuto (titoli, intestazioni griglia, pulsanti). -->
         <Style x:Key="CardSezione" TargetType="Border">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="{StaticResource ColoreBordo}"/>
@@ -45,16 +47,20 @@
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="18"/>
             <Setter Property="Margin" Value="0,0,0,16"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#1F2430" Opacity="0.05" BlurRadius="12" ShadowDepth="2" Direction="270"/>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <Style x:Key="TestataSezione" TargetType="StackPanel">
             <Setter Property="Orientation" Value="Horizontal"/>
             <Setter Property="Margin" Value="0,0,0,14"/>
+        </Style>
+
+        <!-- Barretta di accento colorata davanti al titolo di ogni sezione -->
+        <Style x:Key="BarraAccentoTitolo" TargetType="Border">
+            <Setter Property="Width" Value="4"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="Background" Value="{StaticResource ColoreAccento}"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
         </Style>
 
         <Style x:Key="TitoloSezione" TargetType="TextBlock">
@@ -226,11 +232,26 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Titolo -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Gestione anagrafica interruttori" FontSize="20" FontWeight="Bold" Foreground="{StaticResource ColoreTestoPrimario}"/>
-            <TextBlock Text="Inserimento, modifica ed eliminazione degli interruttori a catalogo" Foreground="{StaticResource ColoreTestoSecondario}" Margin="0,2,0,0"/>
-        </StackPanel>
+        <!-- Titolo + pulsanti azione -->
+        <Grid Grid.Row="0" Margin="0,0,0,16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <Border Width="5" CornerRadius="3" Background="{StaticResource ColoreAccento}" Margin="0,2,14,2" VerticalAlignment="Stretch"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Gestione anagrafica interruttori" FontSize="20" FontWeight="Bold" Foreground="{StaticResource ColoreTestoPrimario}"/>
+                    <TextBlock Text="Inserimento, modifica ed eliminazione degli interruttori a catalogo" Foreground="{StaticResource ColoreTestoSecondario}" Margin="0,2,0,0"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="Elimina" Style="{StaticResource PulsantePericolo}" Width="110" Margin="0,0,10,0" Command="{Binding EliminaCommand}"/>
+                <Button Content="Salva" Style="{StaticResource PulsantePrimario}" Width="130" Command="{Binding SalvaCommand}"/>
+            </StackPanel>
+        </Grid>
 
         <!-- Corpo: elenco (sinistra) + dettaglio a due colonne (destra) -->
         <Grid Grid.Row="1">
@@ -243,7 +264,10 @@
             <!-- ===== Colonna sinistra: elenco interruttori ===== -->
             <Border Grid.Column="0" Style="{StaticResource CardPrincipale}" Padding="16">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Catalogo interruttori" Style="{StaticResource TitoloSezione}" Margin="0,0,0,10"/>
+                    <StackPanel DockPanel.Dock="Top" Style="{StaticResource TestataSezione}">
+                        <Border Style="{StaticResource BarraAccentoTitolo}"/>
+                        <TextBlock Text="Catalogo interruttori" Style="{StaticResource TitoloSezione}"/>
+                    </StackPanel>
 
                     <Button DockPanel.Dock="Bottom" Content="+ Nuovo interruttore" Style="{StaticResource PulsantePrimario}" Margin="0,10,0,0"
                             Command="{Binding NuovoCommand}"/>
@@ -260,193 +284,212 @@
             </Border>
 
             <!-- ===== Colonna destra: dettaglio a due colonne ===== -->
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
+            <Grid Grid.Column="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-                    <!-- ===== Colonna sinistra del dettaglio ===== -->
-                    <StackPanel Grid.Column="0">
+                <!-- ===== Colonna sinistra del dettaglio: Anagrafica + Configurazione interruttore ===== -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-                        <!-- Anagrafica base -->
-                        <Border Style="{StaticResource CardSezione}">
-                            <StackPanel>
-                                <StackPanel Style="{StaticResource TestataSezione}">
-                                    <TextBlock Text="Anagrafica base" Style="{StaticResource TitoloSezione}"/>
-                                </StackPanel>
-
-                                <TextBlock Text="NOME" Style="{StaticResource Etichetta}"/>
-                                <TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged}"/>
-
-                                <TextBlock Text="MARCA" Style="{StaticResource Etichetta}"/>
-                                <ComboBox ItemsSource="{Binding Marche}" SelectedItem="{Binding MarcaSelezionata}" DisplayMemberPath="Nome"/>
-
-                                <TextBlock Text="SERIE" Style="{StaticResource Etichetta}"/>
-                                <ComboBox ItemsSource="{Binding Serie}" SelectedItem="{Binding SerieSelezionata}" DisplayMemberPath="Nome"/>
-
-                                <TextBlock Text="NUMERO POLI" Style="{StaticResource Etichetta}"/>
-                                <ComboBox ItemsSource="{Binding NumeriPoli}" SelectedItem="{Binding NumeroPoli}"/>
-
-                                <TextBlock Text="TIPO" Style="{StaticResource Etichetta}"/>
-                                <ComboBox ItemsSource="{Binding Tipi}" SelectedItem="{Binding TipoSelezionato}" DisplayMemberPath="Tipo"/>
-
-                                <TextBlock Text="RADICE DWG" Style="{StaticResource Etichetta}"/>
-                                <TextBox Text="{Binding RadiceDwg, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
+                    <!-- Anagrafica base -->
+                    <Border Grid.Row="0" Style="{StaticResource CardSezione}">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource TestataSezione}">
+                                <Border Style="{StaticResource BarraAccentoTitolo}"/>
+                                <TextBlock Text="Anagrafica base" Style="{StaticResource TitoloSezione}"/>
                             </StackPanel>
-                        </Border>
 
-                        <!-- Taglie e potenza dissipata -->
-                        <Border Style="{StaticResource CardSezione}">
-                            <StackPanel>
-                                <StackPanel Style="{StaticResource TestataSezione}">
-                                    <TextBlock Text="Taglie e potenza dissipata" Style="{StaticResource TitoloSezione}"/>
-                                </StackPanel>
+                            <TextBlock Text="NOME" Style="{StaticResource Etichetta}"/>
+                            <TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged}"/>
 
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                            <TextBlock Text="MARCA" Style="{StaticResource Etichetta}"/>
+                            <ComboBox ItemsSource="{Binding Marche}" SelectedItem="{Binding MarcaSelezionata}" DisplayMemberPath="Nome"/>
 
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="TAGLIA" Style="{StaticResource Etichetta}"/>
-                                        <TextBox Text="{Binding NuovaTaglia, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <TextBlock Text="POTENZA DISSIPATA" Style="{StaticResource Etichetta}"/>
-                                        <TextBox Text="{Binding NuovaPotenzaDissipata, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="4" Content="+ Aggiungi" Style="{StaticResource PulsantePiccolo}"
-                                            VerticalAlignment="Bottom" Command="{Binding AggiungiTagliaCommand}"/>
-                                </Grid>
+                            <TextBlock Text="SERIE" Style="{StaticResource Etichetta}"/>
+                            <ComboBox ItemsSource="{Binding Serie}" SelectedItem="{Binding SerieSelezionata}" DisplayMemberPath="Nome"/>
 
-                                <DataGrid Style="{StaticResource Griglia}" Height="150"
-                                          ItemsSource="{Binding TaglieAssegnate}"
-                                          SelectedItem="{Binding TagliaSelezionata}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Taglia" Binding="{Binding Taglia}" Width="*"/>
-                                        <DataGridTextColumn Header="Potenza dissipata" Binding="{Binding PotenzaDissipata}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                            <TextBlock Text="NUMERO POLI" Style="{StaticResource Etichetta}"/>
+                            <ComboBox ItemsSource="{Binding NumeriPoli}" SelectedItem="{Binding NumeroPoli}"/>
 
-                                <Button Content="Rimuovi selezionata" Style="{StaticResource PulsanteSecondario}"
-                                        HorizontalAlignment="Left" Margin="0,10,0,0"
-                                        Command="{Binding RimuoviTagliaCommand}"/>
-                            </StackPanel>
-                        </Border>
+                            <TextBlock Text="TIPO" Style="{StaticResource Etichetta}"/>
+                            <ComboBox ItemsSource="{Binding Tipi}" SelectedItem="{Binding TipoSelezionato}" DisplayMemberPath="Tipo"/>
 
-                        <!-- Linee prodotto -->
-                        <Border Style="{StaticResource CardSezione}">
-                            <StackPanel>
-                                <StackPanel Style="{StaticResource TestataSezione}">
-                                    <TextBlock Text="Linee prodotto" Style="{StaticResource TitoloSezione}"/>
-                                </StackPanel>
-
-                                <Grid Margin="0,0,0,10">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="10"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="LINEA PRODOTTO" Style="{StaticResource Etichetta}"/>
-                                        <ComboBox ItemsSource="{Binding LineeProdottoCatalogo}"
-                                                  SelectedItem="{Binding LineaProdottoDaAggiungere}"
-                                                  DisplayMemberPath="Nome" Margin="0"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="2" Content="+ Aggiungi" Style="{StaticResource PulsantePiccolo}"
-                                            VerticalAlignment="Bottom" Command="{Binding AggiungiLineaProdottoCommand}"/>
-                                </Grid>
-
-                                <DataGrid Style="{StaticResource Griglia}" Height="130"
-                                          ItemsSource="{Binding LineeProdottoAssegnate}"
-                                          SelectedItem="{Binding LineaProdottoAssegnataSelezionata}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Linea prodotto" Binding="{Binding Nome}" Width="*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <Button Content="Rimuovi selezionata" Style="{StaticResource PulsanteSecondario}"
-                                        HorizontalAlignment="Left" Margin="0,10,0,0"
-                                        Command="{Binding RimuoviLineaProdottoCommand}"/>
-                            </StackPanel>
-                        </Border>
-
-                    </StackPanel>
-
-                    <!-- ===== Colonna destra del dettaglio ===== -->
-                    <StackPanel Grid.Column="2">
-
-                        <!-- Configurazione interruttore -->
-                        <Border Style="{StaticResource CardSezione}">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Configurazione interruttore" Style="{StaticResource TitoloSezione}"/>
-                                    <Button Grid.Column="1" Content="Apri configurazione" Style="{StaticResource PulsantePiccolo}"
-                                            Command="{Binding ApriConfigurazioneInterruttoreCommand}"
-                                            ToolTip="Salva prima l'anagrafica base per abilitare questa sezione"/>
-                                </Grid>
-
-                                <DataGrid Style="{StaticResource Griglia}" Height="150"
-                                          ItemsSource="{Binding ConfigurazioniAssegnate}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="*"/>
-                                        <DataGridTextColumn Header="Configurazione" Binding="{Binding Nome}" Width="*"/>
-                                        <DataGridTextColumn Header="Delta H" Binding="{Binding DeltaH}" Width="0.6*"/>
-                                        <DataGridTextColumn Header="Delta L" Binding="{Binding DeltaL}" Width="0.6*"/>
-                                        <DataGridTextColumn Header="Delta P" Binding="{Binding DeltaP}" Width="0.6*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Configurazione cella -->
-                        <Border Style="{StaticResource CardSezione}">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,14">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Configurazione cella" Style="{StaticResource TitoloSezione}"/>
-                                    <Button Grid.Column="1" Content="Apri celle" Style="{StaticResource PulsantePiccolo}"
-                                            Command="{Binding ApriConfigurazioneCellaCommand}"
-                                            ToolTip="Aggiungi almeno una taglia e una linea prodotto per abilitare questa sezione"/>
-                                </Grid>
-
-                                <DataGrid Style="{StaticResource Griglia}" Height="150"
-                                          ItemsSource="{Binding CelleAssegnate}">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Linea" Binding="{Binding LineaProdotto}" Width="*"/>
-                                        <DataGridTextColumn Header="Taglia" Binding="{Binding Taglia}" Width="*"/>
-                                        <DataGridTextColumn Header="Alt. cella" Binding="{Binding AltezzaCella}" Width="0.7*"/>
-                                        <DataGridTextColumn Header="Larg. cella" Binding="{Binding LarghezzaCella}" Width="0.7*"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Pulsanti azione -->
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
-                            <Button Content="Elimina" Style="{StaticResource PulsantePericolo}" Width="110" Margin="0,0,10,0" Command="{Binding EliminaCommand}"/>
-                            <Button Content="Salva" Style="{StaticResource PulsantePrimario}" Width="130" Command="{Binding SalvaCommand}"/>
+                            <TextBlock Text="RADICE DWG" Style="{StaticResource Etichetta}"/>
+                            <TextBox Text="{Binding RadiceDwg, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
                         </StackPanel>
+                    </Border>
 
-                    </StackPanel>
+                    <!-- Configurazione interruttore: riempie tutto lo spazio verticale rimanente -->
+                    <Border Grid.Row="1" Style="{StaticResource CardSezione}" Margin="0,0,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Border Style="{StaticResource BarraAccentoTitolo}"/>
+                                    <TextBlock Text="Configurazione interruttore" Style="{StaticResource TitoloSezione}"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="Apri configurazione" Style="{StaticResource PulsantePiccolo}"
+                                        Command="{Binding ApriConfigurazioneInterruttoreCommand}"/>
+                            </Grid>
+
+                            <DataGrid Grid.Row="1" Style="{StaticResource Griglia}"
+                                      ItemsSource="{Binding ConfigurazioniAssegnate}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" Width="*"/>
+                                    <DataGridTextColumn Header="Configurazione" Binding="{Binding Nome}" Width="*"/>
+                                    <DataGridTextColumn Header="Delta H" Binding="{Binding DeltaH}" Width="0.6*"/>
+                                    <DataGridTextColumn Header="Delta L" Binding="{Binding DeltaL}" Width="0.6*"/>
+                                    <DataGridTextColumn Header="Delta P" Binding="{Binding DeltaP}" Width="0.6*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
 
                 </Grid>
-            </ScrollViewer>
+
+                <!-- ===== Colonna destra del dettaglio: Taglie + Linee prodotto + Configurazione cella ===== -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Taglie e potenza dissipata -->
+                    <Border Grid.Row="0" Style="{StaticResource CardSezione}">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource TestataSezione}">
+                                <Border Style="{StaticResource BarraAccentoTitolo}"/>
+                                <TextBlock Text="Taglie e potenza dissipata" Style="{StaticResource TitoloSezione}"/>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="TAGLIA" Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaTaglia, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="POTENZA DISSIPATA" Style="{StaticResource Etichetta}"/>
+                                    <TextBox Text="{Binding NuovaPotenzaDissipata, UpdateSourceTrigger=PropertyChanged}" Margin="0"/>
+                                </StackPanel>
+                                <Button Grid.Column="4" Content="+ Aggiungi" Style="{StaticResource PulsantePiccolo}"
+                                        VerticalAlignment="Bottom" Command="{Binding AggiungiTagliaCommand}"/>
+                            </Grid>
+
+                            <DataGrid Style="{StaticResource Griglia}" Height="140"
+                                      ItemsSource="{Binding TaglieAssegnate}"
+                                      SelectedItem="{Binding TagliaSelezionata}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Taglia" Binding="{Binding Taglia}" Width="*"/>
+                                    <DataGridTextColumn Header="Potenza dissipata" Binding="{Binding PotenzaDissipata}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <Button Content="Rimuovi selezionata" Style="{StaticResource PulsanteSecondario}"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0"
+                                    Command="{Binding RimuoviTagliaCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Linee prodotto -->
+                    <Border Grid.Row="1" Style="{StaticResource CardSezione}">
+                        <StackPanel>
+                            <StackPanel Style="{StaticResource TestataSezione}">
+                                <Border Style="{StaticResource BarraAccentoTitolo}"/>
+                                <TextBlock Text="Linee prodotto" Style="{StaticResource TitoloSezione}"/>
+                            </StackPanel>
+
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="LINEA PRODOTTO" Style="{StaticResource Etichetta}"/>
+                                    <ComboBox ItemsSource="{Binding LineeProdottoCatalogo}"
+                                              SelectedItem="{Binding LineaProdottoDaAggiungere}"
+                                              DisplayMemberPath="Nome" Margin="0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="+ Aggiungi" Style="{StaticResource PulsantePiccolo}"
+                                        VerticalAlignment="Bottom" Command="{Binding AggiungiLineaProdottoCommand}"/>
+                            </Grid>
+
+                            <DataGrid Style="{StaticResource Griglia}" Height="140"
+                                      ItemsSource="{Binding LineeProdottoAssegnate}"
+                                      SelectedItem="{Binding LineaProdottoAssegnataSelezionata}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Linea prodotto" Binding="{Binding Nome}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <Button Content="Rimuovi selezionata" Style="{StaticResource PulsanteSecondario}"
+                                    HorizontalAlignment="Left" Margin="0,10,0,0"
+                                    Command="{Binding RimuoviLineaProdottoCommand}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Configurazione cella: riempie lo spazio verticale rimanente -->
+                    <Border Grid.Row="2" Style="{StaticResource CardSezione}" Margin="0,0,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <Border Style="{StaticResource BarraAccentoTitolo}"/>
+                                    <TextBlock Text="Configurazione cella" Style="{StaticResource TitoloSezione}"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="Apri celle" Style="{StaticResource PulsantePiccolo}"
+                                        Command="{Binding ApriConfigurazioneCellaCommand}"
+                                        ToolTip="Aggiungi almeno una taglia e una linea prodotto per abilitare questa sezione"/>
+                            </Grid>
+
+                            <DataGrid Grid.Row="1" Style="{StaticResource Griglia}"
+                                      ItemsSource="{Binding CelleAssegnate}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Linea" Binding="{Binding LineaProdotto}" Width="*"/>
+                                    <DataGridTextColumn Header="Taglia" Binding="{Binding Taglia}" Width="*"/>
+                                    <DataGridTextColumn Header="Alt. cella" Binding="{Binding AltezzaCella}" Width="0.7*"/>
+                                    <DataGridTextColumn Header="Larg. cella" Binding="{Binding LarghezzaCella}" Width="0.7*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
+
+                </Grid>
+
+            </Grid>
 
         </Grid>
     </Grid>

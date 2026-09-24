@@ -45,9 +45,6 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Sfondo" Background="{TemplateBinding Background}" CornerRadius="24" Padding="{TemplateBinding Padding}">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#D8303F" Opacity="0.35" BlurRadius="14" ShadowDepth="3" Direction="270"/>
-                            </Border.Effect>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="&#10003;" FontWeight="Bold" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                 <ContentPresenter VerticalAlignment="Center"/>
@@ -73,11 +70,6 @@
             <Setter Property="Margin" Value="0,0,16,16"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#1F2430" Opacity="0.06" BlurRadius="14" ShadowDepth="2" Direction="270"/>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <!-- Intestazione del Tipo: barretta di accento colorata + testo maiuscolo -->

@@ -26,11 +26,17 @@ Namespace Views
             DataContext = _viewModel
         End Sub
 
+        ''' <summary>
+        ''' Apre la maschera Configurazione interruttore in modalità "in memoria": può essere
+        ''' compilata prima ancora che l'interruttore sia stato salvato. Il risultato viene
+        ''' riportato nel ViewModel solo se l'utente conferma (DialogResult = True).
+        ''' </summary>
         Private Sub ApriConfigurazioneInterruttore(sender As Object, e As EventArgs)
-            Dim finestra As New ConfigurazioneInterruttoreWindow(_percorsoDatabase, _viewModel.InterruttoreSelezionato.Id)
+            Dim finestra As New ConfigurazioneInterruttoreWindow(_percorsoDatabase, _viewModel.Nome, _viewModel.ConfigurazioniPendenti)
             finestra.Owner = Me
-            finestra.ShowDialog()
-            _viewModel.RicaricaConfigurazioniAssegnate()
+            If finestra.ShowDialog() = True Then
+                _viewModel.AggiornaConfigurazioniPendenti(finestra.ConfigurazioniModificate)
+            End If
         End Sub
 
         Private Sub ApriConfigurazioneCella(sender As Object, e As EventArgs)

@@ -15,10 +15,20 @@ Namespace ViewModels
         Implements INotifyPropertyChanged
 
         Private ReadOnly _repository As InterruttoreRepository
+        Private ReadOnly _catalogoConfigurazioni As List(Of Configurazione)
         Private _id As Integer
+
+        ''' <summary>
+        ''' Configurazioni scelte per l'interruttore corrente, tenute in memoria: Configurazione interruttore
+        ''' si può compilare prima ancora che l'interruttore sia stato salvato. Diventano definitive solo
+        ''' quando si preme Salva sulla maschera principale.
+        ''' </summary>
+        Private _configurazioniPendenti As List(Of ConfigurazioneInterruttore)
 
         Public Sub New(repository As InterruttoreRepository)
             _repository = repository
+            _catalogoConfigurazioni = _repository.ElencoConfigurazioniCatalogo()
+            _configurazioniPendenti = New List(Of ConfigurazioneInterruttore)
 
             Marche = New ObservableCollection(Of Marca)(_repository.ElencoMarche())
             Serie = New ObservableCollection(Of Serie)(_repository.ElencoSerie())
@@ -41,15 +51,16 @@ Namespace ViewModels
             AggiungiLineaProdottoCommand = New RelayCommand(AddressOf EseguiAggiungiLineaProdotto, Function() LineaProdottoDaAggiungere IsNot Nothing)
             RimuoviLineaProdottoCommand = New RelayCommand(AddressOf EseguiRimuoviLineaProdotto, Function() LineaProdottoAssegnataSelezionata IsNot Nothing)
 
+            ' Nessun vincolo: si può compilare Configurazione interruttore prima ancora di salvare l'anagrafica.
             ApriConfigurazioneInterruttoreCommand = New RelayCommand(
-                Sub() RaiseEvent RichiestaAperturaConfigurazioneInterruttore(Me, EventArgs.Empty),
-                Function() _id <> 0)
+                Sub() RaiseEvent RichiestaAperturaConfigurazioneInterruttore(Me, EventArgs.Empty))
 
             ApriConfigurazioneCellaCommand = New RelayCommand(
                 Sub() RaiseEvent RichiestaAperturaConfigurazioneCella(Me, EventArgs.Empty),
-                Function() _id <> 0 AndAlso TaglieAssegnate.Count > 0 AndAlso LineeProdottoAssegnate.Count > 0)
+                Function() TaglieAssegnate.Count > 0 AndAlso LineeProdottoAssegnate.Count > 0)
 
             RicaricaElenco()
+            EseguiNuovo() ' stato iniziale pulito: RadiceDwg/Nome partono da "" e non da Nothing
         End Sub
 
 #Region "Elenchi di supporto per le combobox"
@@ -157,7 +168,7 @@ Namespace ViewModels
 
 #End Region
 
-#Region "Sezione: Configurazione interruttore (sola lettura, gestita nella finestra dedicata)"
+#Region "Sezione: Configurazione interruttore (in memoria fino al Salva finale)"
 
         Public ReadOnly Property ConfigurazioniAssegnate As ObservableCollection(Of RigaConfigurazioneAssegnata)
         Public ReadOnly Property ApriConfigurazioneInterruttoreCommand As RelayCommand
@@ -165,16 +176,31 @@ Namespace ViewModels
         ''' <summary>Sollevato quando l'utente chiede di aprire la maschera Configurazione interruttore.</summary>
         Public Event RichiestaAperturaConfigurazioneInterruttore As EventHandler
 
-        Public Sub RicaricaConfigurazioniAssegnate()
+        ''' <summary>Le configurazioni scelte finora (in memoria), da passare alla finestra dedicata.</summary>
+        Public ReadOnly Property ConfigurazioniPendenti As List(Of ConfigurazioneInterruttore)
+            Get
+                Return _configurazioniPendenti
+            End Get
+        End Property
+
+        ''' <summary>Chiamato dopo la chiusura (confermata) della finestra Configurazione interruttore.</summary>
+        Public Sub AggiornaConfigurazioniPendenti(nuoveConfigurazioni As List(Of ConfigurazioneInterruttore))
+            _configurazioniPendenti = If(nuoveConfigurazioni, New List(Of ConfigurazioneInterruttore))
+            RicostruisciConfigurazioniAssegnate()
+            AggiornaCanExecuteComandi()
+        End Sub
+
+        Private Sub RicostruisciConfigurazioniAssegnate()
             ConfigurazioniAssegnate.Clear()
-            If _id = 0 Then Return
-            For Each riga In _repository.ConfigurazioniAssegnateDescrizione(_id)
+            For Each c In _configurazioniPendenti
+                Dim catalogo = _catalogoConfigurazioni.FirstOrDefault(Function(k) k.Id = c.IdConfigurazione)
+                If catalogo Is Nothing Then Continue For
                 ConfigurazioniAssegnate.Add(New RigaConfigurazioneAssegnata With {
-                    .Tipo = riga.Tipo,
-                    .Nome = riga.Nome,
-                    .DeltaH = riga.DeltaH,
-                    .DeltaL = riga.DeltaL,
-                    .DeltaP = riga.DeltaP
+                    .Tipo = catalogo.Tipo,
+                    .Nome = catalogo.Configurazione,
+                    .DeltaH = c.DeltaH,
+                    .DeltaL = c.DeltaL,
+                    .DeltaP = c.DeltaP
                 })
             Next
         End Sub
@@ -184,7 +210,18 @@ Namespace ViewModels
 #Region "Sezione: Taglie e potenza dissipata"
 
         Public ReadOnly Property TaglieAssegnate As ObservableCollection(Of TagliaRiga)
+
+        Private _tagliaSelezionata As TagliaRiga
         Public Property TagliaSelezionata As TagliaRiga
+            Get
+                Return _tagliaSelezionata
+            End Get
+            Set(value As TagliaRiga)
+                _tagliaSelezionata = value
+                OnPropertyChanged()
+                DirectCast(RimuoviTagliaCommand, RelayCommand).RaiseCanExecuteChanged()
+            End Set
+        End Property
 
         Private _nuovaTaglia As String
         Public Property NuovaTaglia As String
@@ -208,8 +245,30 @@ Namespace ViewModels
 #Region "Sezione: Linee prodotto (transitorio, base per Configurazione Cella)"
 
         Public ReadOnly Property LineeProdottoAssegnate As ObservableCollection(Of LineaProdotto)
+
+        Private _lineaProdottoAssegnataSelezionata As LineaProdotto
         Public Property LineaProdottoAssegnataSelezionata As LineaProdotto
+            Get
+                Return _lineaProdottoAssegnataSelezionata
+            End Get
+            Set(value As LineaProdotto)
+                _lineaProdottoAssegnataSelezionata = value
+                OnPropertyChanged()
+                DirectCast(RimuoviLineaProdottoCommand, RelayCommand).RaiseCanExecuteChanged()
+            End Set
+        End Property
+
+        Private _lineaProdottoDaAggiungere As LineaProdotto
         Public Property LineaProdottoDaAggiungere As LineaProdotto
+            Get
+                Return _lineaProdottoDaAggiungere
+            End Get
+            Set(value As LineaProdotto)
+                _lineaProdottoDaAggiungere = value
+                OnPropertyChanged()
+                DirectCast(AggiungiLineaProdottoCommand, RelayCommand).RaiseCanExecuteChanged()
+            End Set
+        End Property
 
         Public ReadOnly Property AggiungiLineaProdottoCommand As RelayCommand
         Public ReadOnly Property RimuoviLineaProdottoCommand As RelayCommand
@@ -271,6 +330,7 @@ Namespace ViewModels
             RadiceDwg = String.Empty
             TaglieAssegnate.Clear()
             LineeProdottoAssegnate.Clear()
+            _configurazioniPendenti = New List(Of ConfigurazioneInterruttore)
             ConfigurazioniAssegnate.Clear()
             CelleAssegnate.Clear()
             AggiornaCanExecuteComandi()
@@ -294,7 +354,8 @@ Namespace ViewModels
                 TaglieAssegnate.Add(New TagliaRiga With {.Taglia = t.Taglia, .PotenzaDissipata = t.PotenzaDissipata})
             Next
 
-            RicaricaConfigurazioniAssegnate()
+            _configurazioniPendenti = _repository.ConfigurazioniDiInterruttore(_id)
+            RicostruisciConfigurazioniAssegnate()
             RicaricaCelleAssegnate()
 
             ' Le linee prodotto assegnate si deducono dalle celle già salvate per questo interruttore;
@@ -306,9 +367,14 @@ Namespace ViewModels
             Next
         End Sub
 
+        ''' <summary>
+        ''' Per salvare un interruttore serve tutto completo: anagrafica base, almeno una
+        ''' Configurazione, almeno una Taglia e almeno una Linea prodotto.
+        ''' </summary>
         Private Function PuoSalvare() As Boolean
             Return Not String.IsNullOrWhiteSpace(Nome) AndAlso MarcaSelezionata IsNot Nothing AndAlso
-                   SerieSelezionata IsNot Nothing AndAlso TipoSelezionato IsNot Nothing AndAlso NumeroPoli.HasValue
+                   SerieSelezionata IsNot Nothing AndAlso TipoSelezionato IsNot Nothing AndAlso NumeroPoli.HasValue AndAlso
+                   _configurazioniPendenti.Count > 0 AndAlso TaglieAssegnate.Count > 0 AndAlso LineeProdottoAssegnate.Count > 0
         End Function
 
         Private Sub EseguiSalva()
@@ -331,6 +397,17 @@ Namespace ViewModels
                 })
 
             _id = _repository.Salva(interruttore, taglieValide)
+
+            Dim configurazioniDaSalvare = _configurazioniPendenti.
+                Select(Function(c) New ConfigurazioneInterruttore With {
+                    .IdInterruttore = _id,
+                    .IdConfigurazione = c.IdConfigurazione,
+                    .DeltaH = c.DeltaH,
+                    .DeltaL = c.DeltaL,
+                    .DeltaP = c.DeltaP
+                })
+            _repository.SalvaConfigurazioni(_id, configurazioniDaSalvare)
+
             RicaricaElenco()
             InterruttoreSelezionato = Interruttori.FirstOrDefault(Function(i) i.Id = _id)
             AggiornaCanExecuteComandi()
@@ -384,7 +461,6 @@ Namespace ViewModels
         Private Sub AggiornaCanExecuteComandi()
             DirectCast(SalvaCommand, RelayCommand).RaiseCanExecuteChanged()
             DirectCast(EliminaCommand, RelayCommand).RaiseCanExecuteChanged()
-            DirectCast(ApriConfigurazioneInterruttoreCommand, RelayCommand).RaiseCanExecuteChanged()
             DirectCast(ApriConfigurazioneCellaCommand, RelayCommand).RaiseCanExecuteChanged()
         End Sub
 
