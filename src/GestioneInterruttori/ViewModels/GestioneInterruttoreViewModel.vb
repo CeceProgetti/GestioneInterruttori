@@ -3,6 +3,7 @@ Imports System.ComponentModel
 Imports System.Linq
 Imports System.Runtime.CompilerServices
 Imports System.Windows
+Imports System.Windows.Data
 Imports GestioneInterruttori.Data
 Imports GestioneInterruttori.Models
 Imports GestioneInterruttori.Views
@@ -48,6 +49,8 @@ Namespace ViewModels
             Tipi = New ObservableCollection(Of TipoInterruttore)(_repository.ElencoTipi())
             LineeProdottoCatalogo = New ObservableCollection(Of LineaProdotto)(_repository.ElencoLineeProdotto())
             Interruttori = New ObservableCollection(Of Interruttore)
+            VistaInterruttori = CollectionViewSource.GetDefaultView(Interruttori)
+            VistaInterruttori.Filter = AddressOf FiltraInterruttore
 
             TaglieAssegnate = New ObservableCollection(Of TagliaRiga)
             LineeProdottoAssegnate = New ObservableCollection(Of LineaProdotto)
@@ -88,6 +91,27 @@ Namespace ViewModels
 #Region "Elenco interruttori (master)"
 
         Public ReadOnly Property Interruttori As ObservableCollection(Of Interruttore)
+        Public ReadOnly Property VistaInterruttori As ICollectionView
+
+        Private _testoFiltro As String = ""
+        Public Property TestoFiltro As String
+            Get
+                Return _testoFiltro
+            End Get
+            Set(value As String)
+                _testoFiltro = value
+                OnPropertyChanged()
+                VistaInterruttori.Refresh()
+            End Set
+        End Property
+
+        Private Function FiltraInterruttore(elemento As Object) As Boolean
+            If String.IsNullOrWhiteSpace(TestoFiltro) Then Return True
+            Dim interruttore = TryCast(elemento, Interruttore)
+            Return interruttore IsNot Nothing AndAlso
+                interruttore.Nome IsNot Nothing AndAlso
+                interruttore.Nome.Contains(TestoFiltro, StringComparison.OrdinalIgnoreCase)
+        End Function
 
         Private _interruttoreSelezionato As Interruttore
         Public Property InterruttoreSelezionato As Interruttore

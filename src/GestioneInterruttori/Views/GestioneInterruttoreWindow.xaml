@@ -273,8 +273,25 @@
                     <Button DockPanel.Dock="Bottom" Content="+ Nuovo interruttore" Style="{StaticResource PulsantePrimario}" Margin="0,10,0,0"
                             Command="{Binding NuovoCommand}"/>
 
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <TextBox x:Name="CasellaFiltro" Margin="0" Text="{Binding TestoFiltro, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Cerca per nome..." IsHitTestVisible="False" Margin="14,0,0,0"
+                                   Foreground="{StaticResource ColoreTestoSecondario}" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=CasellaFiltro}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
                     <DataGrid Style="{StaticResource Griglia}"
-                              ItemsSource="{Binding Interruttori}"
+                              ItemsSource="{Binding VistaInterruttori}"
                               SelectedItem="{Binding InterruttoreSelezionato}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="*"/>
