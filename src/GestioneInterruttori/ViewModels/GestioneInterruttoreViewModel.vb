@@ -161,9 +161,9 @@ Namespace ViewModels
                     Return False
                 Case MessageBoxResult.Yes
                     If Not PuoSalvare() Then
-                        MessageBox.Show(
+                        DialogInformazione.Mostra(Application.Current?.MainWindow, "Impossibile salvare",
                             "Completa prima tutti i campi obbligatori per salvare (anagrafica, configurazione, almeno una taglia, una linea prodotto e una cella).",
-                            "Impossibile salvare", MessageBoxButton.OK, MessageBoxImage.Information)
+                            tipo:=DialogInformazione.Tipo.Avviso)
                         Return False
                     End If
                     EseguiSalva()
